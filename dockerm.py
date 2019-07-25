@@ -9,7 +9,13 @@ import docker
 data = {}
 client = docker.from_env()
 filename = 'devices.txt'
+pwd = os.getcwd() + "/"
+home = os.getenv("HOME")
 run = True
+
+local_ip = "10.248.56.225"
+hub_ip = "172.16.0.2"
+hub_port = "5566"
 
 def load_containers():
     print("Loading current running containers:")
@@ -42,14 +48,14 @@ def create_container(name):
     name=name,
     environment=["CONNECT_TO_GRID=true",
                 "CUSTOM_NODE_CONFIG=true",
-                "APPIUM_HOST='10.248.56.73'",
+                "APPIUM_HOST='"+ local_ip +"'",
                 "APPIUM_PORT=" + port,
-                "SELENIUM_HOST='172.16.0.2'",
-                "SELENIUM_PORT=5566"],
+                "SELENIUM_HOST='" + hub_ip + "'",
+                "SELENIUM_PORT=" + hub_port],
     ports={'4723/tcp': port},
     devices=["/dev/" + syslink + ":/dev/" + syslink + ":rwm"],
-    volumes={'/home/amaris/.android': {'bind':'/root/.android'},
-            '/home/amaris/' + name + '.json':{'bind':'/root/nodeconfig.json'}})
+    volumes={home + '.android': {'bind':'/root/.android'},
+           pwd + name + '.json':{'bind':'/root/nodeconfig.json'}})
 
 def load_data():
     if os.path.isfile(filename):
@@ -112,6 +118,4 @@ while run:
         print('Restarting container ' + name)
         remove_container(container)   
         create_container(name)
-
-
 
