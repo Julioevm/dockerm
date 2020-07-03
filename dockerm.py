@@ -1,10 +1,11 @@
-#! python3
+#!/usr/bin/env python3
 
 # dockerm.py - Program to manage the docker containers running appium.
 # made by Julio Eliseo Valls Martínez 
 
 import os
 import docker
+import socket
 
 data = {}
 client = docker.from_env()
@@ -13,7 +14,7 @@ pwd = os.getcwd() + "/"
 home = os.getenv("HOME")
 run = True
 
-local_ip = "10.248.56.225"
+local_ip = ""
 hub_ip = "172.16.0.2"
 hub_port = "5566"
 
@@ -57,6 +58,18 @@ def create_container(name):
     volumes={home + '.android': {'bind':'/root/.android'},
            pwd + name + '.json':{'bind':'/root/nodeconfig.json'}})
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
 def load_data():
     if os.path.isfile(filename):
         print('Devices data found, loading...')
@@ -66,6 +79,7 @@ def load_data():
         print(data)
     else:
         print('No device data found. Make sure to have devices.txt in the same dir you run the script!')
+        quit()
     return data
 
 def get_input():
@@ -96,6 +110,8 @@ def select_new_container():
             return device
 
     return None
+
+local_ip = get_ip()
 data = load_data()
 
 while run:
@@ -106,7 +122,7 @@ while run:
     mode = get_input()
 
     if mode == 0:
-        break;
+        break
     elif mode == len(containers) + 2:
         new_container = select_new_container()
         if new_container != None:
