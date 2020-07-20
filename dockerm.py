@@ -2,8 +2,8 @@
 
 # dockerm.py - Program to manage the docker containers running appium.
 # made by Julio Eliseo Valls Martínez 
-
 import os
+import sys
 import docker
 import socket
 
@@ -19,15 +19,13 @@ hub_ip = "172.16.0.2"
 hub_port = "5566"
 
 def load_containers():
-    print("Loading current running containers:")
-    containers = client.containers.list(all=True)
+    return client.containers.list(all=True)
 
+def print_containers(containers):
     print('0. Exit')
     for x in range(len(containers)):
         container = containers[x]
         print(str(x + 1) + '. ' + container.name + ' => ' + container.status)
-    print(str(len(containers) + 2) + '. Create new container')
-    return containers
 
 def remove_container(container):
     print('Stopping container...')
@@ -83,10 +81,11 @@ def load_data():
     return data
 
 def get_input():
-    try:
-        mode = int(input('Enter a number:'))
-    except ValueError:
-        print("Not a number.")
+    mode = input('Enter a number or A for all, N to create a new container:')
+    if mode.isdigit():
+        return int(mode)
+    elif mode not in ('A','N'):
+        print("Not a valid option.")
     return mode
 
 def select_new_container():
@@ -99,7 +98,7 @@ def select_new_container():
 
     mode = get_input()
     
-    if mode > 0 or mode <= len(devices) + 1:
+    if mode > 0 and mode <= len(devices) + 1:
         device = devices[mode - 1] 
         print('Selected ' + device)
         #check that its not running already
@@ -111,27 +110,43 @@ def select_new_container():
 
     return None
 
+def restart_container(container):
+    print('Restarting container ' + container.name)
+    remove_container(container)   
+    create_container(container.name)
+
+def restart_all_containers(containers):
+    print('Restarting all available containers...')
+    for c in containers:
+        restart_container(c)
+
 local_ip = get_ip()
 data = load_data()
 
-while run:
+# If we pass the -a or --all argument, we restart all containers and skip interactive mode.
+if len(sys.argv) > 1 and sys.argv[1] in ('-a', '--all'):
+    restart_all_containers(load_containers())
+    run = False
 
+while run:
     containers = load_containers()
+    print_containers(containers)
     
-    print('What container do you want to restart?')
+    if len(containers) > 0:
+        print('What container do you want to restart?')
+    else:
+        print('No existing containers found.')
     mode = get_input()
 
     if mode == 0:
         break
-    elif mode == len(containers) + 2:
+    elif mode == 'N':
         new_container = select_new_container()
         if new_container != None:
             create_container(new_container)
-        
-    else:
+    elif mode == 'A':
+        restart_all_containers(containers)
+    elif mode.isdigit():
         container = containers[mode - 1]
-        name = container.name
-        print('Restarting container ' + name)
-        remove_container(container)   
-        create_container(name)
+        restart_container(container)
 
