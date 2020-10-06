@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # dockerm.py - Program to manage the docker containers running appium.
-# made by Julio Eliseo Valls Martínez 
+# made by Julio Eliseo Valls Martínez
 import os
 import sys
 import docker
@@ -9,14 +9,14 @@ import socket
 
 data = {}
 client = docker.from_env()
-filename = 'devices.txt'
+FILENAME = 'devices.txt'
 pwd = os.getcwd() + "/"
 home = os.getenv("HOME")
-run = True
+RUN = True
 
-local_ip = ""
-hub_ip = "172.16.0.2"
-hub_port = "5566"
+LOCAL_IP = ""
+HUB_IP = "172.16.0.2"
+HUB_PORT = "5566"
 
 def load_containers():
     return client.containers.list(all=True)
@@ -38,7 +38,7 @@ def create_container(name):
     print('Creating container...')
 
     #get the device port
-    port=data[name]
+    port = data[name]
     #get the device location
     syslink = os.readlink('/dev/' + name)
     client.containers.run(
@@ -47,10 +47,10 @@ def create_container(name):
     name=name,
     environment=["CONNECT_TO_GRID=true",
                 "CUSTOM_NODE_CONFIG=true",
-                "APPIUM_HOST='"+ local_ip +"'",
+                "APPIUM_HOST='"+ LOCAL_IP +"'",
                 "APPIUM_PORT=" + port,
-                "SELENIUM_HOST='" + hub_ip + "'",
-                "SELENIUM_PORT=" + hub_port],
+                "SELENIUM_HOST='" + HUB_IP + "'",
+                "SELENIUM_PORT=" + HUB_PORT],
     ports={'4723/tcp': port},
     devices=["/dev/" + syslink + ":/dev/" + syslink + ":rwm"],
     volumes={home + '.android': {'bind':'/root/.android'},
@@ -61,17 +61,17 @@ def get_ip():
     try:
         # doesn't even have to be reachable
         s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
+        ip = s.getsockname()[0]
     except Exception:
-        IP = '127.0.0.1'
+        ip = '127.0.0.1'
     finally:
         s.close()
-    return IP
+    return ip
 
 def load_data():
-    if os.path.isfile(filename):
+    if os.path.isfile(FILENAME):
         print('Devices data found, loading...')
-        with open(filename) as fh:
+        with open(FILENAME) as fh:
             data = dict(line.strip().split(';', 1) for line in fh)
 
         print(data)
@@ -82,10 +82,9 @@ def load_data():
 
 def get_input():
     mode = input('Enter a number or A for all, N to create a new container:')
-    if mode.isdigit():
-        return int(mode)
-    elif mode not in ('A','N'):
+    if mode not in ('A', 'a', 'N', 'n'):
         print("Not a valid option.")
+        return None
     return mode
 
 def select_new_container():
@@ -117,21 +116,21 @@ def restart_container(container):
 
 def restart_all_containers(containers):
     print('Restarting all available containers...')
-    for c in containers:
-        restart_container(c)
+    for container in containers:
+        restart_container(container)
 
-local_ip = get_ip()
+LOCAL_IP = get_ip()
 data = load_data()
 
 # If we pass the -a or --all argument, we restart all containers and skip interactive mode.
 if len(sys.argv) > 1 and sys.argv[1] in ('-a', '--all'):
     restart_all_containers(load_containers())
-    run = False
+    RUN = False
 
-while run:
+while RUN:
     containers = load_containers()
     print_containers(containers)
-    
+
     if len(containers) > 0:
         print('What container do you want to restart?')
     else:
@@ -140,13 +139,12 @@ while run:
 
     if mode == 0:
         break
-    elif mode == 'N':
+    elif mode in ('N', 'n'):
         new_container = select_new_container()
-        if new_container != None:
+        if new_container is not None:
             create_container(new_container)
-    elif mode == 'A':
+    elif mode in ('A', 'a'):
         restart_all_containers(containers)
     elif mode.isdigit():
         container = containers[mode - 1]
         restart_container(container)
-
