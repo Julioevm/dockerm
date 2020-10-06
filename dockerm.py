@@ -146,5 +146,5 @@ while RUN:
     elif mode in ('A', 'a'):
         restart_all_containers(containers)
     elif mode.isdigit():
-        container = containers[(int)mode - 1]
+        container = containers[int(mode) - 1]
         restart_container(container)
