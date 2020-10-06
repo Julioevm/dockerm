@@ -82,7 +82,7 @@ def load_data():
 
 def get_input():
     mode = input('Enter a number or A for all, N to create a new container:')
-    if mode not in ('A', 'a', 'N', 'n'):
+    if not mode.isdigit and mode not in ('A', 'a', 'N', 'n'):
         print("Not a valid option.")
         return None
     return mode
